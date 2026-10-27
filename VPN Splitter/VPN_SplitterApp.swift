@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct VPN_SplitterApp: App {
+    @StateObject var vm: ViewModel = .init()
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Window("VPN Splitter", id: MenuBarView.mainWindowID) {
+            ContentView(vm: vm)
         }
+
+        MenuBarExtra {
+            MenuBarView(vm: vm)
+        } label: {
+            MenuBarIcon(isRunning: vm.isRunning)
+        }
+        .menuBarExtraStyle(.window)
     }
 }
