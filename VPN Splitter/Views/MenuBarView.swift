@@ -9,7 +9,7 @@ struct MenuBarView: View {
     static let mainWindowID = "main"
 
     @ObservedObject var vm: ViewModel
-    @Environment(\.openWindow) private var openWindow
+    var openMainWindow: () -> Void
     @State private var interfaces: [NetInterface] = []
     @State private var angle: Double = 0
 
@@ -77,8 +77,7 @@ struct MenuBarView: View {
 
             HStack {
                 Button("Open VPN Splitter") {
-                    openWindow(id: Self.mainWindowID)
-                    NSApp.activate(ignoringOtherApps: true)
+                    openMainWindow()
                 }
                 Spacer()
                 Button("Quit") {
