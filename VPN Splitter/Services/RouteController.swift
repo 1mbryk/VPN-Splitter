@@ -20,9 +20,20 @@ final class RouteController: @unchecked Sendable {
     static let shared = RouteController()
     static let dir = "/usr/local/libexec/routerapp"
 
+    static let scripts = ["route-blacklist.zsh", "route-whitelist.zsh", "route-reset.zsh", "route-watchdog.zsh"]
+
     private var watchdog: Process?
 
+    /// Installed and sudo rule works, and the installed scripts match the ones in the bundle,
+    /// so an app update with changed scripts triggers a reinstall.
     var isInstalled: Bool {
+        guard let res = Bundle.main.resourcePath else { return false }
+        for script in Self.scripts {
+            let bundled = FileManager.default.contents(atPath: "\(res)/\(script)")
+            let installed = FileManager.default.contents(atPath: "\(Self.dir)/\(script)")
+            guard bundled != nil, bundled == installed else { return false }
+        }
+
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
         p.arguments = ["-n", "-l", "\(Self.dir)/route-reset.zsh"]

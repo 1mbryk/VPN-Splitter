@@ -69,4 +69,24 @@ class NetworkManager {
             .filter { $0.isUp }
             .sorted { $0.name < $1.name }
     }
+
+    /// Router of the first physical interface (en*) that has one.
+    /// Looked up per interface because the default route points to the VPN while it is up.
+    func defaultGateway() -> String? {
+        for i in listInterfaces() where i.name.hasPrefix("en") && i.ipv4 != nil {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/sbin/ipconfig")
+            p.arguments = ["getoption", i.name, "router"]
+            let pipe = Pipe()
+            p.standardOutput = pipe
+            p.standardError = FileHandle.nullDevice
+            guard (try? p.run()) != nil else { continue }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            p.waitUntilExit()
+            let router = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if p.terminationStatus == 0, !router.isEmpty { return router }
+        }
+        return nil
+    }
 }

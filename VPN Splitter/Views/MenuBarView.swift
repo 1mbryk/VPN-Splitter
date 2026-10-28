@@ -33,6 +33,14 @@ struct MenuBarView: View {
                 .disabled(vm.selectedInterface == nil)
             }
 
+            if let error = vm.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Divider()
 
             Text("Mode").font(.caption).foregroundStyle(.secondary)

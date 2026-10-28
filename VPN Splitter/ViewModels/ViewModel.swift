@@ -8,7 +8,7 @@
 import Foundation
 
 class ViewModel : ObservableObject {
-    @Published var gateway: String = "192.168.1.1"
+    @Published private(set) var lastError: String?
     
     private var netManager: NetworkManager = .init()
     private var routes = RouteController.shared
@@ -38,7 +38,13 @@ class ViewModel : ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("whitelist.json")
     }()
-    private let ipURL: URL = .init(fileURLWithPath: "/Users/macvejpazh/Documents/ips.txt")
+    private let ipURL: URL = {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory,
+                                            in: .userDomainMask)[0]
+        let dir = base.appendingPathComponent("VPN Splitter", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("ips.txt")
+    }()
     init() {
         blackList = load(url: blacklistURL)
         whiteList = load(url: whitelistURL)
@@ -49,32 +55,36 @@ class ViewModel : ObservableObject {
     }
     
     func run() {
-        
+        lastError = nil
         if !routes.isInstalled {
             do {
                 try routes.install()
             } catch {
-                print(error.localizedDescription)
+                lastError = error.localizedDescription
                 return
             }
         }
-        Task {
+        guard let selectedInterface else { return }
+        guard let gateway = netManager.defaultGateway() else {
+            lastError = "Не найден роутер на физическом интерфейсе (en*)"
+            return
+        }
+        isRunning = true
+        Task { @MainActor in
             await resolveDomains()
             do {
                 try await routes.reset()
-                guard let selectedInterface = selectedInterface else { return }
                 try await routes.apply(mode: selectedMode, interface: selectedInterface, gateway: gateway, listURL: ipURL)
             } catch {
-                print(error.localizedDescription)
+                lastError = error.localizedDescription
+                isRunning = false
             }
         }
-        isRunning = true
-        
-        
     }
     
     func stop() {
         isRunning = false
+        lastError = nil
         routes.resetSync()
     }
     

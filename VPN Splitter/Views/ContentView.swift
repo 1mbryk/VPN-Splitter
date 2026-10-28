@@ -18,6 +18,16 @@ struct ContentView: View {
             DomainList(domains: $vm.whiteList)
                 .tabItem { Label("White List", systemImage: "list.bullet") }
         }
+        .safeAreaInset(edge: .bottom) {
+            if let error = vm.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+            }
+        }
         .toolbar {
             ToolbarItemGroup {
                 InterfacePicker(selected: $vm.selectedInterface, getInterfaces: vm.getInterfaces)

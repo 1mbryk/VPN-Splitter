@@ -75,10 +75,3 @@ if (( FAILED )); then
 fi
 
 echo "Whitelist applied: gateway $GW ($GW_IF), entries: $(wc -l < "$STATE" | tr -d ' ')"
-
-
-
-grep -c scutil ./route-whitelist.zsh
-sudo zsh ./route-reset.zsh
-route -n get 172.17.3.1                    
-sudo zsh ./route-whitelist.zsh utun6 192.168.1.1 /Users/macvejpazh/Documents/ips.txt
