@@ -29,6 +29,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         }
     }
+
+    /// Keep splitting in the background from the menu bar after the window is closed.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
 }
 
 /// The status item lives outside any SwiftUI scene, so it borrows
