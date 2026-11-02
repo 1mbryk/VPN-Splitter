@@ -10,8 +10,6 @@ struct MenuBarView: View {
 
     @ObservedObject var vm: ViewModel
     var openMainWindow: () -> Void
-    @State private var interfaces: [NetInterface] = []
-    @State private var angle: Double = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -54,23 +52,14 @@ struct MenuBarView: View {
             .disabled(vm.isRunning)
 
             Text("Interface").font(.caption).foregroundStyle(.secondary)
-            HStack {
-                Picker("", selection: $vm.selectedInterface) {
-                    Text("Interface").tag(String?.none)
-                    Divider()
-                    ForEach(interfaces) { i in
-                        Text("\(i.name)  \(i.ipv4 ?? "")").tag(String?.some(i.name))
-                    }
+            Picker("", selection: $vm.selectedInterface) {
+                Text("Interface").tag(String?.none)
+                Divider()
+                ForEach(vm.interfaces) { i in
+                    Text("\(i.name)  \(i.ipv4 ?? "")").tag(String?.some(i.name))
                 }
-                .labelsHidden()
-                Button {
-                    refresh()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .rotationEffect(.degrees(angle))
-                }
-                .help("Refresh interfaces")
             }
+            .labelsHidden()
             .disabled(vm.isRunning)
 
             Divider()
@@ -87,13 +76,5 @@ struct MenuBarView: View {
         }
         .padding()
         .frame(width: 300)
-        .onAppear { interfaces = vm.getInterfaces() }
-    }
-
-    private func refresh() {
-        interfaces = vm.getInterfaces()
-        withAnimation(.easeInOut(duration: 0.5)) {
-            angle += 360
-        }
     }
 }

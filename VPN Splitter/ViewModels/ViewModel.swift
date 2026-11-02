@@ -23,6 +23,8 @@ class ViewModel : ObservableObject {
     
     @Published var selectedMode: WorkMode = .blacklist
     @Published var selectedInterface: String?
+    @Published private(set) var interfaces: [NetInterface] = []
+    private var watcher: NetworkWatcher?
     
     private let blacklistURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory,
@@ -48,10 +50,19 @@ class ViewModel : ObservableObject {
     init() {
         blackList = load(url: blacklistURL)
         whiteList = load(url: whitelistURL)
+        interfaces = netManager.listInterfaces()
+        watcher = NetworkWatcher { [weak self] in self?.updateInterfaces() }
     }
     
-    func getInterfaces() -> [NetInterface] {
-        return netManager.listInterfaces()
+    private func updateInterfaces() {
+        interfaces = netManager.listInterfaces()
+        guard let selected = selectedInterface,
+              !interfaces.contains(where: { $0.name == selected }) else { return }
+        if isRunning {
+            lastError = "Интерфейс \(selected) пропал — маршруты больше не работают"
+        } else {
+            selectedInterface = nil
+        }
     }
     
     func run() {

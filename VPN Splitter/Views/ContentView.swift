@@ -30,7 +30,7 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                InterfacePicker(selected: $vm.selectedInterface, getInterfaces: vm.getInterfaces)
+                InterfacePicker(selected: $vm.selectedInterface, interfaces: vm.interfaces)
                     .disabled(vm.isRunning)
                 Picker("Mode", selection: $vm.selectedMode) {
                     ForEach(WorkMode.allCases) { mode in
