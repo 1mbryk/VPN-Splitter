@@ -31,24 +31,33 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup {
                 InterfacePicker(selected: $vm.selectedInterface, interfaces: vm.interfaces)
+                    .padding(.horizontal, 6)
                     .disabled(vm.isRunning)
                 Picker("Mode", selection: $vm.selectedMode) {
                     ForEach(WorkMode.allCases) { mode in
                         Text(mode.rawValue).tag(mode)
                     }
                 }
+                .padding(.horizontal, 6)
                 .disabled(vm.isRunning)
-                Button("", systemImage: vm.isRunning ? "stop.fill" : "play.fill") {
+            }
+            // Separate item so it gets its own round background instead of
+            // sharing the pickers' capsule.
+            ToolbarItem {
+                Button {
                     if vm.isRunning {
                         vm.stop()
                     } else {
                         vm.run()
                     }
+                } label: {
+                    Image(systemName: vm.isRunning ? "stop.fill" : "play.fill")
+                        .frame(width: 16, height: 16)
+                        .padding(4)
                 }
+                .help(vm.isRunning ? "Stop" : "Start")
                 .disabled(vm.selectedInterface == nil)
-                .frame(width:25, height: 25)
             }
-                
         }
     }
 }
