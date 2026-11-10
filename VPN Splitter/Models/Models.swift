@@ -18,4 +18,8 @@ struct NetInterface: Identifiable, Hashable {
     let name: String
     let ipv4: String?
     let isUp: Bool
+
+    var title: String {
+        isUp ? "\(name)  \(ipv4 ?? "")" : "\(name)  (inactive)"
+    }
 }

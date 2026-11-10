@@ -16,7 +16,7 @@ struct InterfacePicker: View {
             Text("Interface").tag(String?.none)
             Divider()
             ForEach(interfaces) { i in
-                Text("\(i.name)  \(i.ipv4 ?? "")").tag(String?.some(i.name))
+                Text(i.title).tag(String?.some(i.name))
             }
         }
         .frame(maxWidth: 200)

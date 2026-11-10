@@ -21,10 +21,22 @@ class ViewModel : ObservableObject {
         didSet { save(list: whiteList, url: whitelistURL)}
     }
     
-    @Published var selectedMode: WorkMode = .blacklist
-    @Published var selectedInterface: String?
+    @Published var selectedMode: WorkMode = .blacklist {
+        didSet { UserDefaults.standard.set(selectedMode.rawValue, forKey: Self.modeKey) }
+    }
+    @Published var selectedInterface: String? {
+        didSet {
+            UserDefaults.standard.set(selectedInterface, forKey: Self.interfaceKey)
+            updateInterfaces()
+        }
+    }
+    /// Active interfaces, plus the selected one marked inactive if it is down.
     @Published private(set) var interfaces: [NetInterface] = []
     private var watcher: NetworkWatcher?
+    private var selectedWasActive = false
+
+    private static let modeKey = "selectedMode"
+    private static let interfaceKey = "selectedInterface"
     
     private let blacklistURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory,
@@ -50,18 +62,31 @@ class ViewModel : ObservableObject {
     init() {
         blackList = load(url: blacklistURL)
         whiteList = load(url: whitelistURL)
-        interfaces = netManager.listInterfaces()
+        let defaults = UserDefaults.standard
+        if let mode = defaults.string(forKey: Self.modeKey).flatMap(WorkMode.init(rawValue:)) {
+            selectedMode = mode
+        }
+        selectedInterface = defaults.string(forKey: Self.interfaceKey)
+        updateInterfaces()
         watcher = NetworkWatcher { [weak self] in self?.updateInterfaces() }
     }
     
     private func updateInterfaces() {
-        interfaces = netManager.listInterfaces()
-        guard let selected = selectedInterface,
-              !interfaces.contains(where: { $0.name == selected }) else { return }
-        if isRunning {
-            lastError = "Интерфейс \(selected) пропал — маршруты больше не работают"
+        var list = netManager.listInterfaces()
+        let active = selectedInterface.map { name in list.contains { $0.name == name } } ?? false
+        if let selected = selectedInterface, !active {
+            list.append(NetInterface(name: selected, ipv4: nil, isUp: false))
+        }
+        interfaces = list
+
+        defer { selectedWasActive = active }
+        guard isRunning, let selected = selectedInterface, active != selectedWasActive else { return }
+        if active {
+            // The interface came back: its routes were dropped with it, apply them again.
+            lastError = nil
+            applyRoutes()
         } else {
-            selectedInterface = nil
+            lastError = "Интерфейс \(selected) неактивен — маршруты восстановятся, когда он появится"
         }
     }
     
@@ -76,16 +101,27 @@ class ViewModel : ObservableObject {
             }
         }
         guard let selectedInterface else { return }
-        guard let gateway = netManager.defaultGateway() else {
-            lastError = "Не найден роутер на физическом интерфейсе (en*)"
+        guard selectedWasActive else {
+            lastError = "Интерфейс \(selectedInterface) неактивен"
             return
         }
         isRunning = true
+        applyRoutes()
+    }
+
+    private func applyRoutes() {
+        guard let selectedInterface else { return }
+        guard let gateway = netManager.defaultGateway() else {
+            lastError = "Не найден роутер на физическом интерфейсе (en*)"
+            isRunning = false
+            return
+        }
+        let mode = selectedMode
         Task { @MainActor in
             await resolveDomains()
             do {
                 try await routes.reset()
-                try await routes.apply(mode: selectedMode, interface: selectedInterface, gateway: gateway, listURL: ipURL)
+                try await routes.apply(mode: mode, interface: selectedInterface, gateway: gateway, listURL: ipURL)
             } catch {
                 lastError = error.localizedDescription
                 isRunning = false
